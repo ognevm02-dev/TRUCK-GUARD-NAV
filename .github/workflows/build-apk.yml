@@ -38,10 +38,13 @@ jobs:
           test -n "$PROJECT_DIR"
           cp -a "$PROJECT_DIR"/. .
 
-      - name: Set Java target to 17
+      - name: Fix Java version
         run: |
-          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle
-          sed -i 's/1\.8/17/g' app/build.gradle
+          printf '%s\n' \
+            'tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {' \
+            '    sourceCompatibility = "17"' \
+            '    targetCompatibility = "17"' \
+            '}' >> app/build.gradle
 
       - name: Build APK
         run: gradle --no-daemon assembleDebug
