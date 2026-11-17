@@ -1,15 +1,18 @@
+
 name: Build TRUCK GUARD NAV APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Download repository
+        uses: actions/checkout@v4
 
       - name: Prepare Java
         uses: actions/setup-java@v4
@@ -17,9 +20,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v4
+      - name: Prepare Android
+        uses: android-actions/setup-android@v4
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
@@ -32,21 +37,17 @@ jobs:
           PROJECT_DIR=$(find /tmp/truck-project -name settings.gradle -printf '%h\n' | head -n 1)
           test -n "$PROJECT_DIR"
           cp -a "$PROJECT_DIR"/. .
-      - name: Fix Java and Kotlin versions
-        run: |
-          cat >> app/build.gradle <<'EOF'
 
-          tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
-              sourceCompatibility = '17'
-              targetCompatibility = '17'
-          }
-          EOF      
-        
-    
+      - name: Set Java target to 17
+        run: |
+          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle
+          sed -i 's/1\.8/17/g' app/build.gradle
+
       - name: Build APK
         run: gradle --no-daemon assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Save APK
+        uses: actions/upload-artifact@v4
         with:
           name: TRUCK-GUARD-NAV-APK
           path: app/build/outputs/apk/debug/app-debug.apk
