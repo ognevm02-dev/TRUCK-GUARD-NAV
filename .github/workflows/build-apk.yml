@@ -40,3 +40,7 @@ jobs:
         with:
           name: TRUCK-GUARD-NAV-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          
+      - name: Fix Java and Kotlin versions
+        run: |
+          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle
