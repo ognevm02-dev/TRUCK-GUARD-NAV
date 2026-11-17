@@ -4,7 +4,8 @@ name: Build TRUCK GUARD NAV APK
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
   build:
@@ -38,13 +39,35 @@ jobs:
           test -n "$PROJECT_DIR"
           cp -a "$PROJECT_DIR"/. .
 
-      - name: Fix Java version
+      - name: Set Java and Kotlin versions
         run: |
-          printf '%s\n' \
-            'tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {' \
-            '    sourceCompatibility = "17"' \
-            '    targetCompatibility = "17"' \
-            '}' >> app/build.gradle
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/build.gradle")
+          s = p.read_text()
+          block = """
+          android {
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          """
+          if "compileOptions {" in s:
+              import re
+              s = re.sub(r'compileOptions\s*\{.*?\}', 'compileOptions {\\n        sourceCompatibility JavaVersion.VERSION_17\\n        targetCompatibility JavaVersion.VERSION_17\\n    }', s, flags=re.S)
+          else:
+              s += "\\n" + block
+          s += """
+          
+          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          }
+          """
+          p.write_text(s)
+          PY
 
       - name: Build APK
         run: gradle --no-daemon assembleDebug
