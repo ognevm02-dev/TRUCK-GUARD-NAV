@@ -47,19 +47,20 @@ jobs:
           p = Path("app/build.gradle")
           s = p.read_text()
 
-          dependency = 'implementation "androidx.core:core-ktx:1.15.0"'
+          dependency = 'implementation("androidx.core:core-ktx:1.15.0")'
 
           if dependency not in s:
-              marker = "dependencies {"
-              if marker not in s:
-                  raise SystemExit("Could not find dependencies block in app/build.gradle")
-              s = s.replace(
-                  marker,
-                  marker + "\n    " + dependency,
-                  1
-              )
+              if "dependencies {" in s:
+                  s = s.replace(
+                      "dependencies {",
+                      "dependencies {\n    " + dependency,
+                      1
+                  )
+              else:
+                  s += "\n\ndependencies {\n    " + dependency + "\n}\n"
 
           p.write_text(s)
+          print("AndroidX Core dependency added")
           PY
 
       - name: Set Java and Kotlin versions
@@ -85,15 +86,15 @@ jobs:
                   flags=re.S
               )
           else:
-              block = """
-              android {
-                  compileOptions {
-                      sourceCompatibility JavaVersion.VERSION_17
-                      targetCompatibility JavaVersion.VERSION_17
-                  }
+              s += """
+
+          android {
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
               }
-              """
-              s += "\n" + block
+          }
+          """
 
           if "tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile)" not in s:
               s += """
