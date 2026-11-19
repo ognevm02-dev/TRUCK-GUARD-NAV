@@ -35,7 +35,7 @@ jobs:
           ARCHIVE=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
           test -n "$ARCHIVE"
           unzip -q "$ARCHIVE" -d /tmp/truck-project
-          PROJECT_DIR=$(find /tmp/truck-project -name settings.gradle -printf '%h\n' | head -n 1)
+          PROJECT_DIR=$(find /tmp/truck-project \( -name settings.gradle -o -name settings.gradle.kts \) -printf '%h\n' | head -n 1)
           test -n "$PROJECT_DIR"
           cp -a "$PROJECT_DIR"/. .
 
@@ -43,29 +43,45 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path("app/build.gradle")
           s = p.read_text()
-          block = """
-          android {
-              compileOptions {
+
+          replacement = """compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          """
+              }"""
+
           if "compileOptions {" in s:
-              import re
-              s = re.sub(r'compileOptions\s*\{.*?\}', 'compileOptions {\\n        sourceCompatibility JavaVersion.VERSION_17\\n        targetCompatibility JavaVersion.VERSION_17\\n    }', s, flags=re.S)
+              s = re.sub(
+                  r"compileOptions\s*\{.*?\}",
+                  replacement,
+                  s,
+                  count=1,
+                  flags=re.S
+              )
           else:
-              s += "\\n" + block
-          s += """
-          
+              block = """
+              android {
+                  compileOptions {
+                      sourceCompatibility JavaVersion.VERSION_17
+                      targetCompatibility JavaVersion.VERSION_17
+                  }
+              }
+              """
+              s += "\n" + block
+
+          if "tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile)" not in s:
+              s += """
+
           tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
               kotlinOptions {
                   jvmTarget = "17"
               }
           }
           """
+
           p.write_text(s)
           PY
 
