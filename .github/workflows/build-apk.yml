@@ -39,6 +39,29 @@ jobs:
           test -n "$PROJECT_DIR"
           cp -a "$PROJECT_DIR"/. .
 
+      - name: Add AndroidX Core dependency
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/build.gradle")
+          s = p.read_text()
+
+          dependency = 'implementation "androidx.core:core-ktx:1.15.0"'
+
+          if dependency not in s:
+              marker = "dependencies {"
+              if marker not in s:
+                  raise SystemExit("Could not find dependencies block in app/build.gradle")
+              s = s.replace(
+                  marker,
+                  marker + "\n    " + dependency,
+                  1
+              )
+
+          p.write_text(s)
+          PY
+
       - name: Set Java and Kotlin versions
         run: |
           python3 - <<'PY'
